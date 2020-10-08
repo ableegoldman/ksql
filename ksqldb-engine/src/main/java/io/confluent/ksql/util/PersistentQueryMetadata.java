@@ -39,11 +39,15 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Metadata of a persistent query, e.g. {@code CREATE STREAM FOO AS SELECT * FROM BAR;}.
  */
 public class PersistentQueryMetadata extends QueryMetadata {
+
+  private static final Logger LOG = LoggerFactory.getLogger(PersistentQueryMetadata.class);
 
   private final DataSource sinkDataSource;
   private final QuerySchemas schemas;
@@ -177,7 +181,23 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return materializationProvider.map(builder -> builder.build(queryId, contextStacker));
   }
 
+  @Override
+  public void start() {
+    ++nthQuery;
+    if (nthQuery == NUM_QUERIES) {
+      LOG.info("SOPHIE: Starting {}nth persistent query with application id: {}", nthQuery, getQueryApplicationId());
+      everStarted = true;
+      getKafkaStreams().start();
+    } else if (nthQuery < NUM_QUERIES) {
+      LOG.info("SOPHIE: skipping to start {}nth persistent query", nthQuery);
+    } else {
+      LOG.info("SOPHIE: tried to start {} > {}(NUM_QUERIES) persistent query", nthQuery, NUM_QUERIES);
+      throw new IllegalStateException("SOPHIE: I don't think this should happen but might be wrong");
+    }
+  }
+
   public synchronized void restart() {
+
     if (isClosed()) {
       throw new IllegalStateException(String.format(
           "Query with application id %s is already closed, cannot restart.",

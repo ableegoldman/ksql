@@ -52,11 +52,16 @@ public abstract class QueryMetadata {
 
   private static final Logger LOG = LoggerFactory.getLogger(QueryMetadata.class);
 
+  public static final int NUM_QUERIES = 100;
+  protected static int nthQuery = 0;
+
   private final String statementString;
   private final String executionPlan;
   private final String queryApplicationId;
   private final Topology topology;
+
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
+
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
   protected final Consumer<QueryMetadata> closeCallback;
@@ -68,7 +73,7 @@ public abstract class QueryMetadata {
   private final Queue<QueryError> queryErrors;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
-  private boolean everStarted = false;
+  protected boolean everStarted = false;
   protected boolean closed = false;
   private UncaughtExceptionHandler uncaughtExceptionHandler = this::uncaughtHandler;
   private KafkaStreams kafkaStreams;
