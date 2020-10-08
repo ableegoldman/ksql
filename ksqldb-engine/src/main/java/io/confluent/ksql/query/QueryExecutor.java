@@ -16,6 +16,7 @@
 package io.confluent.ksql.query;
 
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
+import static io.confluent.ksql.util.QueryMetadata.NUM_QUERIES;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -69,9 +70,16 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class QueryExecutor {
+
+  private static int nthQuery = 0;
+
+  private static final Logger LOG = LoggerFactory.getLogger(QueryExecutor.class);
+
   private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
       = "ksql.logger.thread.exception.uncaught";
 
@@ -82,7 +90,7 @@ public final class QueryExecutor {
   private final FunctionRegistry functionRegistry;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Consumer<QueryMetadata> queryCloseCallback;
-  private final StreamsBuilder streamsBuilder;
+  private static final StreamsBuilder streamsBuilder = new StreamsBuilder();
   private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
 
   public QueryExecutor(
@@ -131,7 +139,6 @@ public final class QueryExecutor {
         "queryCloseCallback"
     );
     this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
-    this.streamsBuilder = Objects.requireNonNull(streamsBuilder, "streamsBuilder");
     this.materializationProviderBuilderFactory = Objects.requireNonNull(
         materializationProviderBuilderFactory,
         "materializationProviderBuilderFactory"
@@ -188,6 +195,15 @@ public final class QueryExecutor {
       final ExecutionStep<?> physicalPlan,
       final String planSummary
   ) {
+    ++nthQuery;
+    LOG.info("SOPHIE: building new persistent query with statementText = {}, sources = {}, planSummary = {}",
+             statementText, sources, planSummary);
+    LOG.info("SOPHIE: this is the {}th persistent query built", nthQuery);
+    if (nthQuery > NUM_QUERIES) {
+      LOG.info("SOPHIE: tried to build {} > {}(NUM_QUERIES) persistent queries", nthQuery, NUM_QUERIES);
+      throw new IllegalStateException("SOPHIE: I don't think this should happen but might be wrong");
+    }
+
     final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
     final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
     final Object result = physicalPlan.build(planBuilder);
