@@ -30,7 +30,6 @@
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
     <version>6.2.0-0</version>
-
     <licenses>
         <license>
             <name>Confluent Community License</name>
@@ -145,7 +144,7 @@
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-streams</artifactId>
-                <version>${kafka.version}</version>
+                <version>2.7.0-SNAPSHOT-250c71b532</version>
             </dependency>
 
             <dependency>

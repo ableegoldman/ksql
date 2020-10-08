@@ -150,9 +150,10 @@ public class KsqlContext implements AutoCloseable {
 
     for (final QueryMetadata queryMetadata : queries) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
+        LOG.info("SOPHIE: KsqlContext starting persistent query {}", queryMetadata);
         queryMetadata.start();
       } else {
-        LOG.warn("Ignoring statemenst: {}", sql);
+        LOG.warn("Ignoring statements: {}", sql);
         LOG.warn("Only CREATE statements can run in KSQL embedded mode.");
       }
     }
