@@ -18,11 +18,13 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.GenericRow;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Random;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.processor.StateStore;
 
 public interface MaterializedFactory {
+
   <K, S extends StateStore> Materialized<K, GenericRow, S> create(
       Serde<K> keySerde,
       Serde<GenericRow> valSerde,
@@ -44,11 +46,12 @@ public interface MaterializedFactory {
           public <K, V, S extends StateStore> Materialized<K, V, S> materializedAs(
               final String storeName,
               final Optional<Duration> retention) {
+            final String uniqueName = storeName + new Random().nextLong();
             if (retention.isPresent()) {
-              return (Materialized<K, V, S>) Materialized.as(storeName)
+              return (Materialized<K, V, S>) Materialized.as(uniqueName)
                   .withRetention(retention.get());
             } else {
-              return Materialized.as(storeName);
+              return Materialized.as(uniqueName);
             }
           }
         }
