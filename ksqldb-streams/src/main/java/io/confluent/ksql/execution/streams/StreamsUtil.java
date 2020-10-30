@@ -18,10 +18,14 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.execution.context.QueryContext;
 
 public final class StreamsUtil {
+
+  private static int uniqueId = 0;
+
   private StreamsUtil() {
   }
 
   public static String buildOpName(final QueryContext opContext) {
-    return String.join("-", opContext.getContext());
+    ++uniqueId;
+    return String.join("-", opContext.getContext()) + "-" + uniqueId;
   }
 }
