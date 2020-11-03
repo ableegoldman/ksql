@@ -213,11 +213,8 @@ public final class QueryExecutor {
     ++nthQuery;
     LOG.info("SOPHIE: building new persistent query with statementText = {}, sources = {}, planSummary = {}",
              statementText, sources, planSummary);
-    LOG.info("SOPHIE: this is the {}th persistent query built", nthQuery);
-    if (nthQuery > NUM_QUERIES) {
-      LOG.info("SOPHIE: tried to build {} > {}(NUM_QUERIES) persistent queries", nthQuery, NUM_QUERIES);
-      throw new IllegalStateException("SOPHIE: I don't think this should happen but might be wrong");
-    }
+    LOG.info("SOPHIE: this is the {}th persistent query built, but possibly not actually the nth query launched", nthQuery);
+
 
     final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
     final Object result = buildQueryImplementation(physicalPlan, ksqlQueryBuilder);
