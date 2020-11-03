@@ -198,6 +198,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   public synchronized void restart() {
 
+    LOG.info("SOPHIE: restarting the ksql query {}", this);
     if (isClosed()) {
       throw new IllegalStateException(String.format(
           "Query with application id %s is already closed, cannot restart.",
