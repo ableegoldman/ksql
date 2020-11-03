@@ -194,6 +194,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
       LOG.info("SOPHIE: tried to start {} > {}(NUM_QUERIES) persistent query", nthQuery, NUM_QUERIES);
       throw new IllegalStateException("SOPHIE: I don't think this should happen but might be wrong");
     }
+    throw new IllegalStateException("Reached start() in PersistentQueryMetadata");
   }
 
   public synchronized void restart() {

@@ -16,8 +16,12 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.execution.context.QueryContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class StreamsUtil {
+
+  private static final Logger LOG = LoggerFactory.getLogger(StreamsUtil.class);
 
   private static int uniqueId = 0;
 
@@ -25,6 +29,7 @@ public final class StreamsUtil {
   }
 
   public static String buildOpName(final QueryContext opContext) {
+    LOG.info("SOPHIE: at unique id {}", uniqueId);
     ++uniqueId;
     return String.join("-", opContext.getContext()) + "-" + uniqueId;
   }
