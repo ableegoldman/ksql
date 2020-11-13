@@ -37,7 +37,6 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
-import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.query.QueryExecutor;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
@@ -245,10 +244,6 @@ final class EngineContext {
         statement,
         config
     );
-  }
-
-  DdlCommand createDdlCommand(final KsqlStructuredDataOutputNode outputNode) {
-    return ddlCommandFactory.create(outputNode);
   }
 
   String executeDdl(

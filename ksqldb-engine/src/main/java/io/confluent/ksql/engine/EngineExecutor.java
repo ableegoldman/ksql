@@ -19,8 +19,12 @@ import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
+import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
+import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
@@ -32,6 +36,7 @@ import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
@@ -173,6 +178,7 @@ final class EngineExecutor {
           (KsqlStructuredDataOutputNode) plans.logicalPlan.getNode().get();
 
       final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
+          statement,
           outputNode
       );
 
@@ -248,6 +254,7 @@ final class EngineExecutor {
   }
 
   private Optional<DdlCommand> maybeCreateSinkDdl(
+      final ConfiguredStatement<?> cfgStatement,
       final KsqlStructuredDataOutputNode outputNode
   ) {
     if (!outputNode.createInto()) {
@@ -255,7 +262,35 @@ final class EngineExecutor {
       return Optional.empty();
     }
 
-    return Optional.of(engineContext.createDdlCommand(outputNode));
+    final Formats formats = Formats.from(outputNode.getKsqlTopic());
+
+    final Statement statement = cfgStatement.getStatement();
+    final CreateSourceCommand ddl;
+    if (outputNode.getNodeOutputType() == DataSourceType.KSTREAM) {
+      ddl = new CreateStreamCommand(
+          outputNode.getIntoSourceName(),
+          outputNode.getSchema(),
+          outputNode.getTimestampColumn(),
+          outputNode.getKsqlTopic().getKafkaTopicName(),
+          formats,
+          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+          Optional.of(
+              statement instanceof CreateAsSelect && ((CreateAsSelect) statement).isOrReplace())
+      );
+    } else {
+      ddl = new CreateTableCommand(
+          outputNode.getIntoSourceName(),
+          outputNode.getSchema(),
+          outputNode.getTimestampColumn(),
+          outputNode.getKsqlTopic().getKafkaTopicName(),
+          formats,
+          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+          Optional.of(
+              statement instanceof CreateAsSelect && ((CreateAsSelect) statement).isOrReplace())
+      );
+    }
+
+    return Optional.of(ddl);
   }
 
   private void validateExistingSink(
