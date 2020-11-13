@@ -181,37 +181,26 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return materializationProvider.map(builder -> builder.build(queryId, contextStacker));
   }
 
-  @Override
-  public void start() {
-    ++nthQuery;
-    if (nthQuery == NUM_QUERIES) {
-      LOG.info("SOPHIE: Starting {}nth persistent query with application id: {}", nthQuery, getQueryApplicationId());
-      everStarted = true;
-      getKafkaStreams().start();
-    } else if (nthQuery < NUM_QUERIES) {
-      LOG.info("SOPHIE: skipping to start {}nth persistent query", nthQuery);
-    } else {
-      LOG.info("SOPHIE: tried to start {} > {}(NUM_QUERIES) persistent query", nthQuery, NUM_QUERIES);
-      throw new IllegalStateException("SOPHIE: I don't think this should happen but might be wrong");
-    }
-  }
-
   public synchronized void restart() {
 
-    LOG.info("SOPHIE: restarting the ksql query {}", this);
-    if (isClosed()) {
-      throw new IllegalStateException(String.format(
-          "Query with application id %s is already closed, cannot restart.",
-          getQueryApplicationId()));
+    if (getKafkaStreams() != null) {
+      LOG.info("SOPHIE: restarting the ksql query {}", this);
+      if (isClosed()) {
+        throw new IllegalStateException(String.format(
+            "Query with application id %s is already closed, cannot restart.",
+            getQueryApplicationId()));
+      }
+
+      closeKafkaStreams();
+
+      final KafkaStreams newKafkaStreams = buildKafkaStreams();
+      materializationProvider = materializationProviderBuilder.flatMap(
+          builder -> builder.apply(newKafkaStreams));
+
+      resetKafkaStreams(newKafkaStreams);
+      start();
+    } else {
+      LOG.info("SOPHIE: skipped restarting the not-yet-started ksql query {}", this);
     }
-
-    closeKafkaStreams();
-
-    final KafkaStreams newKafkaStreams = buildKafkaStreams();
-    materializationProvider = materializationProviderBuilder.flatMap(
-        builder -> builder.apply(newKafkaStreams));
-
-    resetKafkaStreams(newKafkaStreams);
-    start();
   }
 }

@@ -117,6 +117,19 @@ public abstract class QueryMetadata {
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
     this.queryErrors = EvictingQueue.create(maxQueryErrorsQueueSize);
 
+    ++nthQuery;
+    if (nthQuery == NUM_QUERIES) {
+      LOG.info("SOPHIE: Creating {}nth persistent query with application id: {}", nthQuery, getQueryApplicationId());
+      // initialize the first KafkaStreams
+      this.kafkaStreams = kafkaStreamsBuilder.build(topology, streamsProperties);
+      kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
+    } else if (nthQuery < NUM_QUERIES) {
+      LOG.info("SOPHIE: skipping to create {}nth persistent query", nthQuery);
+    } else {
+      LOG.info("SOPHIE: tried to create {} > {}(NUM_QUERIES) persistent query", nthQuery, NUM_QUERIES);
+      throw new IllegalStateException("SOPHIE: I don't think this should happen but might be wrong");
+    }
+
     // initialize the first KafkaStreams
     this.kafkaStreams = kafkaStreamsBuilder.build(topology, streamsProperties);
     kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
@@ -145,8 +158,10 @@ public abstract class QueryMetadata {
 
   public void setQueryStateListener(final QueryStateListener queryStateListener) {
     this.queryStateListener = Optional.of(queryStateListener);
-    kafkaStreams.setStateListener(queryStateListener);
-    queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
+    if (kafkaStreams != null) {
+      kafkaStreams.setStateListener(queryStateListener);
+      queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
+    }
   }
 
   /**
@@ -190,11 +205,17 @@ public abstract class QueryMetadata {
 
   public void setUncaughtExceptionHandler(final UncaughtExceptionHandler handler) {
     this.uncaughtExceptionHandler = handler;
-    kafkaStreams.setUncaughtExceptionHandler(handler);
+    if (kafkaStreams != null) {
+      kafkaStreams.setUncaughtExceptionHandler(handler);
+    }
   }
 
   public State getState() {
-    return kafkaStreams.state();
+    if (kafkaStreams == null) {
+      return State.CREATED;
+    } else {
+      return kafkaStreams.state();
+    }
   }
 
   public boolean isError() {
@@ -215,7 +236,11 @@ public abstract class QueryMetadata {
 
   public Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLags() {
     try {
-      return kafkaStreams.allLocalStorePartitionLags();
+      if (kafkaStreams != null) {
+        return kafkaStreams.allLocalStorePartitionLags();
+      } else {
+        return ImmutableMap.of();
+      }
     } catch (IllegalStateException | StreamsException e) {
       LOG.error(e.getMessage());
       return ImmutableMap.of();
@@ -282,7 +307,10 @@ public abstract class QueryMetadata {
   }
 
   protected void closeKafkaStreams() {
-    kafkaStreams.close(closeTimeout);
+
+    if (kafkaStreams != null) {
+      kafkaStreams.close(Duration.ofMillis(closeTimeout));
+    }
   }
 
   protected KafkaStreams buildKafkaStreams() {
@@ -318,7 +346,7 @@ public abstract class QueryMetadata {
     closed = true;
     closeKafkaStreams();
 
-    if (cleanUp) {
+    if (cleanUp && kafkaStreams != null) {
       kafkaStreams.cleanUp();
     }
 
@@ -331,21 +359,12 @@ public abstract class QueryMetadata {
   }
 
   public void start() {
-    LOG.info("SOPHIE: starting apparently non-persistent query");
     LOG.info("Starting query with application id: {}", queryApplicationId);
-    everStarted = true;
 
-    ++nthQuery;
-    if (nthQuery == NUM_QUERIES) {
-      LOG.info("SOPHIE: Starting {}nth persistent query with application id: {}", nthQuery, getQueryApplicationId());
-      everStarted = true;
-      getKafkaStreams().start();
-    } else if (nthQuery < NUM_QUERIES) {
-      LOG.info("SOPHIE: skipping to start {}nth persistent query", nthQuery);
-    } else {
-      LOG.info("SOPHIE: tried to start {} > {}(NUM_QUERIES) persistent query", nthQuery, NUM_QUERIES);
-      throw new IllegalStateException("SOPHIE: I don't think this should happen but might be wrong");
+    if (kafkaStreams != null) {
+      kafkaStreams.start();
     }
+    everStarted = true;
   }
 
   public void clearErrors() {
