@@ -117,17 +117,13 @@ public abstract class QueryMetadata {
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
     this.queryErrors = EvictingQueue.create(maxQueryErrorsQueueSize);
 
-    ++nthQuery;
-    if (nthQuery == NUM_QUERIES) {
-      LOG.info("SOPHIE: Creating {}nth persistent query with application id: {}", nthQuery, getQueryApplicationId());
+    if (statementString.contains("SINK_99")) {
+      LOG.info("SOPHIE: Creating 100th persistent query with application id: {}", getQueryApplicationId());
       // initialize the first KafkaStreams
       this.kafkaStreams = kafkaStreamsBuilder.build(topology, streamsProperties);
       kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
-    } else if (nthQuery < NUM_QUERIES) {
-      LOG.info("SOPHIE: skipping to create {}nth persistent query", nthQuery);
     } else {
-      LOG.info("SOPHIE: tried to create {} > {}(NUM_QUERIES) persistent query", nthQuery, NUM_QUERIES);
-      throw new IllegalStateException("SOPHIE: I don't think this should happen but might be wrong");
+        LOG.info("SOPHIE: skipping to create persistent query for {}", statementString);
     }
 
     // initialize the first KafkaStreams
