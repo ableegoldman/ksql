@@ -126,9 +126,6 @@ public abstract class QueryMetadata {
         LOG.info("SOPHIE: skipping to create persistent query for {}", statementString);
     }
 
-    // initialize the first KafkaStreams
-    this.kafkaStreams = kafkaStreamsBuilder.build(topology, streamsProperties);
-    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
@@ -355,11 +352,14 @@ public abstract class QueryMetadata {
   }
 
   public void start() {
-    LOG.info("Starting query with application id: {}", queryApplicationId);
 
     if (kafkaStreams != null) {
+      LOG.info("Starting query with application id: {}", queryApplicationId);
       kafkaStreams.start();
+    } else {
+      LOG.info("Skipping to start null query with application id: {}", queryApplicationId);
     }
+
     everStarted = true;
   }
 
