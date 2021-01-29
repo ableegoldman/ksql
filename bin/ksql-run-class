@@ -21,6 +21,7 @@ fi
 : "${KSQL_OPTS:=""}"
 : "${KSQL_HEAP_OPTS:=""}"
 : "${KSQL_JVM_PERFORMANCE_OPTS:=""}"
+: "${KSQL_DEBUG_OPTS:=""}"
 : "${JMX_PORT:=""}"
 : "${JAVA_HOME:=""}"
 
@@ -87,6 +88,11 @@ fi
 # JVM performance options
 if [ -z "$KSQL_JVM_PERFORMANCE_OPTS" ]; then
   KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:+CMSScavengeBeforeRemark -XX:+ExplicitGCInvokesConcurrent -XX:NewRatio=1 -Djava.awt.headless=true"
+fi
+
+# Debugging options
+if [ -z "$KSQL_DEBUG_OPTS" ]; then
+  KSQL_DEBUG_OPTS="-XX:-OmitStackTraceInFastThrow"
 fi
 
 if [ $# -lt 1 ];
@@ -161,6 +167,7 @@ fi
 
 OPTIONS=($KSQL_HEAP_OPTS)
 OPTIONS+=($KSQL_JVM_PERFORMANCE_OPTS)
+OPTIONS+=($KSQL_DEBUG_OPTS)
 OPTIONS+=($KSQL_JMX_OPTS)
 OPTIONS+=($KSQL_LOG4J_OPTS)
 OPTIONS+=($KSQL_OPTS)
